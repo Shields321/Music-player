@@ -99,10 +99,12 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
         pygame.mixer.music.load(self.get_file_to_play()) #get the new file location and load it into the mixer
         pygame.mixer.music.play() #play the new file location music              
     def back(self): #decrease the value of the num variable so that the previous song can be played        
-        if self.num >= 0: #as the value of num cant be -0 we have to make sure its always greater then 0 when reducing its value
+        if self.num > 0: #as the value of num cant be -0 we have to make sure its always greater then 0 when reducing its value
             self.num-=1 #if its greater then reduce the value
-        pygame.mixer.music.load(self.get_file_to_play())
-        pygame.mixer.music.play()
+            pygame.mixer.music.load(self.get_file_to_play())
+            pygame.mixer.music.play()
+        else:
+            self.ispaused = False 
     def update_positions(self):        
         for i, button in enumerate(self.buttons):#loop through all buttons
             x_percent, y_percent = self.button_positions[i] #get their positions reletive to the screen
