@@ -53,6 +53,7 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
         self.current_Song = None               
         self.isPlaying = True 
         self.ispaused = False
+        self.isFastForward = False
         self.random_file = []
         self.num = 0
         self.new_position=0 
@@ -118,6 +119,7 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
             self.ispaused = True #if music is being played set the paused flag to true                  
     def next(self): #function for the next button       
         self.num +=1 #decrease the value of the num variable so that a new file loaction can be saved
+        self.new_position = 0
         pygame.mixer.music.load(self.get_file_to_play()) #get the new file location and load it into the mixer
         pygame.mixer.music.play() #play the new file location music              
     def back(self): #decrease the value of the num variable so that the previous song can be played        
@@ -129,26 +131,35 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
             self.ispaused = False 
     def fast_forward(self):
         if self.isPlaying:  # Ensure fast forward only works while music is playing
-            current_song_position = pygame.mixer.music.get_pos() // 1000  # Current position in seconds
-            self.new_position += current_song_position + 10 
-            length = self.get_audio_length(self.song)  # Get the length of the current song
-
+            self.isFastForward = True
+            # Increment the absolute position by 10 seconds
+            self.new_position += 10
+            song_length = self.get_audio_length(self.song)
+            
             # Ensure the new position doesn't exceed the song length
-            if self.new_position < length:
+            if self.new_position < song_length:
                 pygame.mixer.music.stop()  # Stop current playback
-                pygame.mixer.music.play(start=self.new_position)  # Restart from new position                
+                pygame.mixer.music.play(start=self.new_position)  # Restart from new position
             else:
                 print("Cannot fast forward beyond the song length.")
-    def end_of_song(self):       
-        try:
-            self.new_position += pygame.mixer.music.get_pos()//1000          
-            length = self.get_audio_length(self.song)  # Get the length of the current song            
-            # Ensure the new position doesn't exceed the song length
-            if self.new_position >= length:                
-                pygame.mixer.music.stop()  # Stop current playback
-                self.next()
-        except Exception as e:
-            print(e)
+                
+    def end_of_song(self):
+        if self.isPlaying:
+            song_length = self.get_audio_length(self.song)
+            
+            # Track position based on the manual `new_position`
+            if self.isFastForward:
+                # If we fast-forwarded, keep the new position as current position
+                current_position = self.new_position
+                self.isFastForward = False  # Reset the fast-forward flag
+            else:
+                # Otherwise, update based on `get_pos()`
+                current_position = self.new_position + (pygame.mixer.music.get_pos() // 1000)            
+            # Check if the end of the song is reached
+            if current_position >= song_length:
+                pygame.mixer.music.stop()
+                self.new_position = 0
+                self.next()  # Move to the next song                     
     def update_positions(self):        
         for i, button in enumerate(self.buttons):#loop through all buttons
             x_percent, y_percent = self.button_positions[i] #get their positions reletive to the screen
@@ -194,8 +205,7 @@ class FileMenu:  # Handles file operations (e.g., loading songs, saving playlist
                 files.append(os.path.join(folder_path, entry))
         return files
     
-    def list_files(self): 
-        print("files")       
+    def list_files(self):                
         return self.files
     
 class NowPlayingDisplay:  # Displays current song information (title, artist)
