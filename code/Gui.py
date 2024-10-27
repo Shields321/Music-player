@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter import ttk
+from mutagen import File
 
 import pygame
 import random as rnd
@@ -47,19 +48,22 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
         self.parent_frame = parent_frame
         self.fileMenu = parent_file_menu
         self.buttons = []
-        self.button_positions = [(0.0, 0.8), (0.0, 0.83), (0.0, 0.86),(0.0, 0.89), (0.0, 0.92)]
+        self.button_positions = [(0.0, 0.8), (0.0, 0.83),(0.0, 0.86), (0.0, 0.89),(0.0, 0.92), (0.0, 0.95)]
         
-        self.current_Song = None        
+        self.current_Song = None               
         self.isPlaying = True 
         self.ispaused = False
         self.random_file = []
         self.num = 0
-        pygame.mixer.music.load(self.get_file_to_play())
+        self.new_position=0 
+                
+        self.song = self.get_file_to_play()
+        pygame.mixer.music.load(self.song)
         pygame.mixer.music.play()
         
         self.create_display()
         self.button_state()
-
+        
     def create_Button(self, text, command):
         button = ttk.Button(self.parent_frame, text=text, command=command)        
         self.buttons.append(button)
@@ -68,29 +72,47 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
         # Add buttons for player controls, with positions and sizes as percentages of window size
         self.create_Button("Play", command=self.play)
         self.create_Button("Pause",command=self.pause)
+        self.create_Button("FastForward",command=self.fast_forward)
         self.create_Button("Next", command=self.next)
         self.create_Button("Back", command=self.back)
         self.create_Button("Quit", command=self.quit)
-         
+        
+    def get_audio_length(self, file_path):
+        audio = File(file_path)
+        if audio is not None and audio.info is not None:
+            return audio.info.length  # Length in seconds
+        return 0  # Return 0 if length can't be determined     
     def get_file_to_play(self):
         files = self.fileMenu.list_files() #get all the files in the downloaded_music folder
         random_index = rnd.randint(0, len(files) - 1) # get a randome number
-        self.random_file.append(files[random_index]) #save the file location so that if the user want to go back to the previous song they can       
+        self.song = files[random_index]
+        self.random_file.append(files[random_index]) #save the file location so that if the user want to go back to the previous song they can                
         return self.random_file[self.num]
      
-    def button_state(self):
-        if self.isPlaying and not self.ispaused: #if a song is playing and the pause button wasnt clicked
+    def button_state(self):   
+        self.end_of_song()     
+        if self.isPlaying and not self.ispaused: #if a song is playing and the pause button wasnt clicked            
             if not pygame.mixer.music.get_busy():  # Check if the music is still playing                
-                self.is_playing = False # if no music is playing set the flag for playing music to false
+                self.isPlaying = False # if no music is playing set the flag for playing music to false
             pygame.mixer.music.unpause() #if a song is playing and the pause button wasnt clicked then play music
         elif self.ispaused: #is the pause button was clicked 
-            pygame.mixer.music.pause() #pause the music
-            
-        self.parent_frame.after(500, self.button_state) #repeat this every 500 miliseconds
-                          
-    def play(self):  #function for the play button      
-        self.ispaused = False #when the play button is clicked set the ispaused flag to false
-        self.isPlaying = True #and the isplaying flag to true so that music can play                                                                      
+            pygame.mixer.music.pause() #pause the music          
+        self.parent_frame.after(500, self.button_state) #repeat this every 500 miliseconds                         
+    def play(self):
+        print("Playing song")
+        if self.ispaused:  # If the song was paused, simply unpause it
+            pygame.mixer.music.unpause()
+            self.ispaused = False
+        elif not self.isPlaying:  # If no song is currently playing, load and play a new song
+            self.isPlaying = True
+            song_path = self.get_file_to_play()
+            pygame.mixer.music.load(song_path)
+            pygame.mixer.music.play()
+
+            # Set the start time and song length
+            self.start_time = time.time()
+            self.current_song_length = pygame.mixer.Sound(song_path).get_length()             
+                                                                      
     def pause(self): #function for the pause button       
         if self.isPlaying: #the pause button should only work while music is being played
             self.ispaused = True #if music is being played set the paused flag to true                  
@@ -105,6 +127,28 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
             pygame.mixer.music.play()
         else:
             self.ispaused = False 
+    def fast_forward(self):
+        if self.isPlaying:  # Ensure fast forward only works while music is playing
+            current_song_position = pygame.mixer.music.get_pos() // 1000  # Current position in seconds
+            self.new_position += current_song_position + 10 
+            length = self.get_audio_length(self.song)  # Get the length of the current song
+
+            # Ensure the new position doesn't exceed the song length
+            if self.new_position < length:
+                pygame.mixer.music.stop()  # Stop current playback
+                pygame.mixer.music.play(start=self.new_position)  # Restart from new position                
+            else:
+                print("Cannot fast forward beyond the song length.")
+    def end_of_song(self):       
+        try:
+            self.new_position += pygame.mixer.music.get_pos()//1000          
+            length = self.get_audio_length(self.song)  # Get the length of the current song            
+            # Ensure the new position doesn't exceed the song length
+            if self.new_position >= length:                
+                pygame.mixer.music.stop()  # Stop current playback
+                self.next()
+        except Exception as e:
+            print(e)
     def update_positions(self):        
         for i, button in enumerate(self.buttons):#loop through all buttons
             x_percent, y_percent = self.button_positions[i] #get their positions reletive to the screen
