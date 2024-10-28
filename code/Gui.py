@@ -6,6 +6,7 @@ import pygame
 import random as rnd
 import time
 import os
+import math
 import threading
 import keyboard 
 
@@ -134,18 +135,18 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
             self.isFastForward = True
             # Increment the absolute position by 10 seconds
             self.new_position += 10
-            song_length = self.get_audio_length(self.song)
+            song_length = math.ceil(self.get_audio_length(self.song))
             
             # Ensure the new position doesn't exceed the song length
-            if self.new_position < song_length:
-                pygame.mixer.music.stop()  # Stop current playback
+            if self.new_position < song_length-10:
+                #pygame.mixer.music.stop()  # Stop current playback
                 pygame.mixer.music.play(start=self.new_position)  # Restart from new position
             else:
                 print("Cannot fast forward beyond the song length.")
                 
     def end_of_song(self):
         if self.isPlaying:
-            song_length = self.get_audio_length(self.song)
+            song_length = math.ceil(self.get_audio_length(self.song))
             
             # Track position based on the manual `new_position`
             if self.isFastForward:
@@ -154,11 +155,12 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
                 self.isFastForward = False  # Reset the fast-forward flag
             else:
                 # Otherwise, update based on `get_pos()`
-                current_position = self.new_position + (pygame.mixer.music.get_pos() // 1000)            
+                current_position = self.new_position + (pygame.mixer.music.get_pos() // 1000) 
+            print(f"current {current_position} length {song_length}")           
             # Check if the end of the song is reached
-            if current_position >= song_length:
+            if current_position >= song_length-1 or current_position < 0:
                 pygame.mixer.music.stop()
-                self.new_position = 0
+                print("song stopped")                
                 self.next()  # Move to the next song                     
     def update_positions(self):        
         for i, button in enumerate(self.buttons):#loop through all buttons
