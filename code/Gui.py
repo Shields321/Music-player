@@ -1,3 +1,5 @@
+from DownloadMusic import MusicDownload
+
 from tkinter import *
 from tkinter import ttk
 from mutagen import File
@@ -8,7 +10,7 @@ import time
 import os
 import math
 import threading
-import keyboard 
+
 
 class MusicPlayerApp:  # Main class for the application
     def __init__(self):
@@ -42,14 +44,20 @@ class MusicPlayerApp:  # Main class for the application
         self.volumeControl.update_slider_position()                
     def start(self):        
         self.root.mainloop()
-
+class download:
+    def __init__(self) -> None:
+        self.md = MusicDownload()           
+    def download(self):       
+        music = 'https://www.youtube.com/watch?v=2D0B3wTjE20&list=PLO4oIEL2GEkPyNSQTVZNZzS8Ej0GK9cXs'
+        print(self.md.download(music))  
 
 class PlayerControls:  # Handles play, pause, next, previous buttons
     def __init__(self, parent_frame,parent_file_menu):
+        self.download = download()
         self.parent_frame = parent_frame
         self.fileMenu = parent_file_menu
         self.buttons = []
-        self.button_positions = [(0.0, 0.8), (0.0, 0.83),(0.0, 0.86), (0.0, 0.89),(0.0, 0.92), (0.0, 0.95)]
+        self.button_positions = [(0.0, 0.8), (0.0, 0.83),(0.0, 0.86), (0.0, 0.89),(0.0, 0.92), (0.0, 0.95),(0.0,0.6)]
         
         self.current_Song = None               
         self.isPlaying = True 
@@ -61,7 +69,7 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
                 
         self.song = self.get_file_to_play()
         pygame.mixer.music.load(self.song)
-        pygame.mixer.music.play()
+        pygame.mixer.music.play()                
         
         self.create_display()
         self.button_state()
@@ -77,7 +85,9 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
         self.create_Button("FastForward",command=self.fast_forward)
         self.create_Button("Next", command=self.next)
         self.create_Button("Back", command=self.back)
-        self.create_Button("Quit", command=self.quit)
+        self.create_Button("Quit", command=self.quit)  
+        self.create_Button("download",command=self.download.download)
+              
         
     def get_audio_length(self, file_path):
         audio = File(file_path)
@@ -198,18 +208,16 @@ class FileMenu:  # Handles file operations (e.g., loading songs, saving playlist
         self.folder_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'Downloaded_Music'))          
         self.files = self.read_files(self.folder_path)        
         self.current_file = None  
-                              
+                                      
     @staticmethod
     def read_files(folder_path):
         files = []
         for entry in os.listdir(folder_path):
             if entry.lower().endswith(('.ogg', '.wav','.mp3')):
                 files.append(os.path.join(folder_path, entry))
-        return files
-    
+        return files    
     def list_files(self):                
-        return self.files
-    
+        return self.files      
 class NowPlayingDisplay:  # Displays current song information (title, artist)
     pass
     
