@@ -50,7 +50,4 @@ class MusicDownload:
         with youtube_dl.YoutubeDL(self.title_opts) as ydl:  # No specific options to ensure full metadata extraction
             info = ydl.extract_info(url, download=False)            
             self.file_name = f"{info.get('title', 'unknown')}.mp3"
-            return self.file_name
-        
-# Example usage
-
+            return self.file_name    

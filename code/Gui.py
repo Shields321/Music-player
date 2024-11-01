@@ -220,7 +220,8 @@ class FileMenu:  # Handles file operations (e.g., loading songs, saving playlist
         return self.files      
 class NowPlayingDisplay:  # Displays current song information (title, artist)
     pass
-    
+class shortcutManager: #allow the player to have the ability to change keybinds for different functions
+    pass
 if __name__ == "__main__":
     # Initialize and start the music player app
     app = MusicPlayerApp()
