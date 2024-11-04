@@ -1,3 +1,4 @@
+from requirementsDownload import download_ffmpeg
 import yt_dlp as youtube_dl
 import os
 
@@ -15,14 +16,18 @@ class MusicDownload:
         self.title_opts = {
             'quiet': True,              
         }
-        self.file_name = None
+        self.file_name = None        
         
     def download(self, url):
-        if self.is_downloaded(url):
-            with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
-                ydl.download([url])
-        else:
-            return "file already downloaded"
+        try:
+            if self.is_downloaded(url):
+                with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
+                    ydl.download([url])
+            else:
+                return "file already downloaded"
+        except:            
+            download_ffmpeg()
+        
             
     def is_downloaded(self, url):
         self.file_name_from_url(url)

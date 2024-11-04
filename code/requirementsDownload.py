@@ -1,3 +1,4 @@
+#maybe for this file allow users to download the requirements into a folder of their choosing
 import os
 import platform
 import subprocess

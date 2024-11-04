@@ -1,7 +1,8 @@
 from DownloadMusic import MusicDownload
 
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, StringVar, CENTER, TOP
+from tkinter.messagebox import askyesno
 from mutagen import File
 
 import pygame
@@ -46,10 +47,40 @@ class MusicPlayerApp:  # Main class for the application
         self.root.mainloop()
 class download:
     def __init__(self) -> None:
-        self.md = MusicDownload()           
-    def download(self):       
-        music = 'https://www.youtube.com/watch?v=2D0B3wTjE20&list=PLO4oIEL2GEkPyNSQTVZNZzS8Ej0GK9cXs'
-        print(self.md.download(music))  
+        self.md = MusicDownload()  
+    def inputWindow(self):
+        self.root = Toplevel() #use top level instead of Tk() when creating a window ontop of another window
+        self.root.title("Download")
+        self.root.geometry("400x200")
+        
+        self.frm = ttk.Frame(self.root, padding=10)
+        self.frm.pack(fill='both', expand=True)
+        
+        self.input_text = StringVar()
+        
+        # Entry widget for user input
+        self.text = ttk.Entry(self.frm, textvariable=self.input_text, justify=CENTER)
+        self.text.focus_force()  # Focus on the text entry
+        self.text.pack(side=TOP, ipadx=30, ipady=6)
+
+        # Button that triggers the confirmation dialog and download
+        self.save = ttk.Button(self.root, text='Save', command=self.confirm_save)
+        self.save.pack(side=TOP, pady=10)
+        
+        self.root.mainloop()
+
+    def confirm_save(self):
+        if askyesno('Confirm', 'Do you want to save?'):
+            music = self.input_text.get()  # Retrieve the current input
+            print(f"Music input: '{music}'")  # Debug output to check input
+            self.download(music)  # Call the download function with the input text
+
+    def download(self, music):
+        if music:  # Check if music is not empty
+            print(f"Downloading: {music}")
+            self.md.download(music)
+        else:
+            print("No input provided for downloading.")  # Debug output
 
 class PlayerControls:  # Handles play, pause, next, previous buttons
     def __init__(self, parent_frame,parent_file_menu):
@@ -86,7 +117,7 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
         self.create_Button("Next", command=self.next)
         self.create_Button("Back", command=self.back)
         self.create_Button("Quit", command=self.quit)  
-        self.create_Button("download",command=self.download.download)
+        self.create_Button("download",command=self.download.inputWindow)
               
         
     def get_audio_length(self, file_path):
@@ -213,14 +244,14 @@ class FileMenu:  # Handles file operations (e.g., loading songs, saving playlist
     def read_files(folder_path):
         files = []
         for entry in os.listdir(folder_path):
-            if entry.lower().endswith(('.ogg', '.wav','.mp3')):
+            if entry.lower().endswith(('.ogg', '.wav','.mp3','webm')):
                 files.append(os.path.join(folder_path, entry))
         return files    
     def list_files(self):                
         return self.files      
 class NowPlayingDisplay:  # Displays current song information (title, artist)
     pass
-class shortcutManager: #allow the player to have the ability to change keybinds for different functions
+class ShortcutManager: #allow the player to have the ability to change keybinds for different functions
     pass
 if __name__ == "__main__":
     # Initialize and start the music player app
