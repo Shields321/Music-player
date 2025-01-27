@@ -11,6 +11,7 @@ import time
 import os
 import math
 import threading
+import keyboard
 
 
 class MusicPlayerApp:  # Main class for the application
@@ -33,6 +34,7 @@ class MusicPlayerApp:  # Main class for the application
 
         # Bind window resize event to dynamically adjust button and slider positions
         self.root.bind("<Configure>", self.update_pos)
+        self.playerControls.show_playlist()
         self.root.bind("<ButtonRelease-1>", self.volumeControl.get_vol)                
 
     def update_pos(self, event=None):
@@ -49,7 +51,7 @@ class download:
     def __init__(self) -> None:
         self.md = MusicDownload()  
     def inputWindow(self):
-        self.root = Toplevel() #use top level instead of Tk() when creating a window ontop of another window
+        self.root = Toplevel() 
         self.root.title("Download")
         self.root.geometry("400x200")
         
@@ -73,14 +75,14 @@ class download:
         if askyesno('Confirm', 'Do you want to save?'):
             music = self.input_text.get()  # Retrieve the current input
             print(f"Music input: '{music}'")  # Debug output to check input
-            self.download(music)  # Call the download function with the input text
+            self.download(music)  
 
     def download(self, music):
-        if music:  # Check if music is not empty
+        if music:
             print(f"Downloading: {music}")
             self.md.download(music)
         else:
-            print("No input provided for downloading.")  # Debug output
+            print("No input provided for downloading.")  
 
 class PlayerControls:  # Handles play, pause, next, previous buttons
     def __init__(self, parent_frame,parent_file_menu):
@@ -88,7 +90,7 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
         self.parent_frame = parent_frame
         self.fileMenu = parent_file_menu
         self.buttons = []
-        self.button_positions = [(0.0, 0.8), (0.0, 0.83),(0.0, 0.86), (0.0, 0.89),(0.0, 0.92), (0.0, 0.95),(0.0,0.6)]
+        self.button_positions = [(0.0, 0.8), (0.0, 0.83),(0.0, 0.86), (0.0, 0.89),(0.0, 0.92), (0.0, 0.95),(0.0,0.6)]        
         
         self.current_Song = None               
         self.isPlaying = True 
@@ -112,19 +114,35 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
     def create_display(self):
         # Add buttons for player controls, with positions and sizes as percentages of window size
         self.create_Button("Play", command=self.play)
-        self.create_Button("Pause",command=self.pause)
+        self.create_Button("Pause",command=self.pause)        
         self.create_Button("FastForward",command=self.fast_forward)
         self.create_Button("Next", command=self.next)
         self.create_Button("Back", command=self.back)
         self.create_Button("Quit", command=self.quit)  
-        self.create_Button("download",command=self.download.inputWindow)
-              
+        self.create_Button("download",command=self.download.inputWindow)  
+    #functions to display playlists      
+    def get_playlists(self):
+        playlists = self.fileMenu.read_playlist() 
+        return playlists           
+    def show_playlist(self):
+        self.selected_option = StringVar()
+        self.selected_option.set("Select an option") 
         
+        options = self.get_playlists()
+        optionMenu = ttk.OptionMenu(self.parent_frame,self.selected_option,options[0],*options)   
+        optionMenu.pack(pady=20)
+        self.selected_option.trace("w",self.update_song_list)
+    def update_song_list(self,*args):        
+        selected_value = self.selected_option.get()
+        self.fileMenu.update_song_path(selected_value)        
+        self.fileMenu.list_files()
+    #functions for playing music and music buttons
     def get_audio_length(self, file_path):
         audio = File(file_path)
         if audio is not None and audio.info is not None:
             return audio.info.length  # Length in seconds
-        return 0  # Return 0 if length can't be determined     
+        return 0  # Return 0 if length can't be determined         
+        
     def get_file_to_play(self):
         files = self.fileMenu.list_files() #get all the files in the downloaded_music folder
         random_index = rnd.randint(0, len(files) - 1) # get a randome number
@@ -140,7 +158,8 @@ class PlayerControls:  # Handles play, pause, next, previous buttons
             pygame.mixer.music.unpause() #if a song is playing and the pause button wasnt clicked then play music
         elif self.ispaused: #is the pause button was clicked 
             pygame.mixer.music.pause() #pause the music          
-        self.parent_frame.after(500, self.button_state) #repeat this every 500 miliseconds                         
+        self.parent_frame.after(500, self.button_state) #repeat this every 500 miliseconds   
+                              
     def play(self):
         print("Playing song")
         if self.ispaused:  # If the song was paused, simply unpause it
@@ -236,10 +255,22 @@ class VolumeControl:  # Manages volume slider and mute button
 class FileMenu:  # Handles file operations (e.g., loading songs, saving playlists)
     def __init__(self,parent_frame):
         self.parent_frame = parent_frame
-        self.folder_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'Downloaded_Music'))          
+        self.folder_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ),'playlists','Downloaded_Music'))          
         self.files = self.read_files(self.folder_path)        
         self.current_file = None  
-                                      
+        
+    def update_song_path(self,playlist):
+        self.files = []
+        self.folder_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ),'playlists',playlist)) 
+        self.files = self.read_files(self.folder_path)
+        
+    def read_playlist(self): 
+        folder_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ),'playlists')) 
+        playlists=[]      
+        for entry in os.listdir(folder_path):
+            playlists.append(entry)     
+        return playlists  
+                               
     @staticmethod
     def read_files(folder_path):
         files = []
@@ -248,10 +279,15 @@ class FileMenu:  # Handles file operations (e.g., loading songs, saving playlist
                 files.append(os.path.join(folder_path, entry))
         return files    
     def list_files(self):                
-        return self.files      
+        return self.files 
+         
 class NowPlayingDisplay:  # Displays current song information (title, artist)
     pass
 class ShortcutManager: #allow the player to have the ability to change keybinds for different functions
+    def __init__(self) -> None:
+        pass
+    def setHotkey(self,key,command):
+        keyboard.add_hotkey(key,command)
     pass
 if __name__ == "__main__":
     # Initialize and start the music player app
